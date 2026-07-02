@@ -69,8 +69,9 @@ npm run dev
 Open another pane or tmux window, then start OpenCode inside the project:
 
 ```sh
+mkdir -p ~/projects/my-app
 cd ~/projects/my-app
-ocode --auto
+oa
 ```
 
 Avoid starting OpenCode from `/root`, `~`, or `~/projects`.

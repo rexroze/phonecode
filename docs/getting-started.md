@@ -17,8 +17,8 @@ After setup:
 
 ```sh
 start
-source ~/.bashrc
 pc doctor
+pc help
 ```
 
 ## Requirements
@@ -73,7 +73,7 @@ Create a Termux command named `start` so Ubuntu is one word away:
 ```sh
 cat > "$PREFIX/bin/start" << 'EOF'
 #!/bin/sh
-exec proot-distro login ubuntu
+exec proot-distro login ubuntu -- bash -i
 EOF
 chmod +x "$PREFIX/bin/start"
 ```

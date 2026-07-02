@@ -1,18 +1,17 @@
 # PhoneCode
 
 ```text
-        ______________________
-       /  __________________  \
-      |  |                  |  |
-      |  |   phonecode      |  |
-      |  |   >_ build       |  |
-      |  |   >_ ship        |  |
-      |  |__________________|  |
-       \______  ____  ______/
-              \/    \/
+      __________________
+     /  ______________  \
+    |  |              |  |
+    |  |  phonecode   |  |
+    |  |  >_ build    |  |
+    |  |  >_ ship     |  |
+    |  |______________|  |
+     \______ ____ ______/
+            \____/
 
-          code from your phone
-          Termux -> Ubuntu -> code
+     code from your phone
 ```
 
 Build, edit, run, and deploy small web apps from an Android phone.
@@ -46,9 +45,11 @@ After setup:
 ```sh
 start
 pc doctor
+pc help
+mkdir -p ~/projects/my-app
 cd ~/projects/my-app
 code .
-ocode --auto
+oa
 ```
 
 ## Command Design
@@ -78,7 +79,7 @@ opencode          # official OpenCode, untouched
 opencode --auto   # official OpenCode auto mode, untouched
 ocode             # PhoneCode-safe OpenCode wrapper
 ocode --auto      # safe OpenCode with auto mode
-oa                # optional shortcut for ocode --auto
+oa                # short shortcut for ocode --auto
 ```
 
 `ocode` refuses to start OpenCode from broad folders like `/root`, `~`, or `~/projects`, because that can make OpenCode scan too much and feel laggy. Use it inside one project folder.
@@ -138,6 +139,7 @@ Use a laptop or remote development machine for heavy builds, Docker-based projec
 Inside Ubuntu:
 
 ```sh
+mkdir -p ~/projects/my-app
 cd ~/projects/my-app
 code .
 npm run dev

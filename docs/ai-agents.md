@@ -21,6 +21,7 @@ opencode --version
 Good:
 
 ```sh
+mkdir -p ~/projects/my-app
 cd ~/projects/my-app
 opencode
 ```
@@ -28,8 +29,9 @@ opencode
 Better with PhoneCode safety:
 
 ```sh
+mkdir -p ~/projects/my-app
 cd ~/projects/my-app
-ocode --auto
+oa
 ```
 
 Avoid running OpenCode from broad folders:
@@ -64,7 +66,7 @@ opencode
 opencode --auto
 ```
 
-Optional shortcut:
+Short shortcut:
 
 ```sh
 oa

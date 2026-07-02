@@ -39,7 +39,7 @@ Depends on the selected profile. Recommended includes:
 - Optional npm CLIs: OpenCode, Vercel, Neon
 - Optional code-server
 - PhoneCode commands: `phonecode`, `pc`, `ocode`
-- Optional `oa` shortcut for `ocode --auto`
+- Recommended `oa` shortcut for `ocode --auto`
 
 ## Custom Setup
 
@@ -86,7 +86,7 @@ OpenCode:
 opencode          # official OpenCode, untouched
 ocode             # safe wrapper
 ocode --auto      # safe wrapper with auto mode
-oa                # optional shortcut for ocode --auto
+oa                # short shortcut for ocode --auto
 ```
 
 ## Backups

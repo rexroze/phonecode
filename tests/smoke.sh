@@ -17,6 +17,11 @@ grep -q "dry-run" /tmp/phonecode-test-minimal.log
 grep -q "Terminal name:        root" /tmp/phonecode-test-minimal.log
 grep -q "Git identity:         PhoneCode User <user@phonecode.local>" /tmp/phonecode-test-minimal.log
 grep -q "create/update only if PhoneCode owns it" /tmp/phonecode-test-minimal.log
+grep -q "  ocode --auto" /tmp/phonecode-test-minimal.log
+grep -q "oa shortcut:          1" /tmp/phonecode-test-recommended.log
+grep -q "pc help" /tmp/phonecode-test-recommended.log
+grep -q "mkdir -p ~/projects/my-app" /tmp/phonecode-test-recommended.log
+! grep -q "source ~/.bashrc" /tmp/phonecode-test-recommended.log
 grep -q "proot-distro login ubuntu -- install selected tools" /tmp/phonecode-test-repair.log
 grep -q "Skipping Ubuntu setup" /tmp/phonecode-test-custom-no-ubuntu.log
 grep -q "PhoneCode setup finished without Ubuntu changes" /tmp/phonecode-test-custom-no-ubuntu.log

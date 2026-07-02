@@ -296,7 +296,7 @@ apply_profile() {
             INSTALL_GH=1
             INSTALL_VERCEL=1
             INSTALL_NEON=1
-            INSTALL_OA=0
+            INSTALL_OA=1
             ;;
         minimal)
             INSTALL_UBUNTU=1
@@ -479,10 +479,10 @@ brand_phone() {
 
 BRAND
     printf "%b" "$NC"
-    printf "          %bcode from your phone%b\n" "$GREEN" "$NC"
+    printf "     %bcode from your phone%b\n" "$GREEN" "$NC"
 }
 brand_phone
-exec proot-distro login ubuntu
+exec proot-distro login ubuntu -- bash -i
 STARTEOF
     chmod +x "$START_PATH"
 }
@@ -643,6 +643,9 @@ open() {
 HELPERS
 phonecode_name_escaped="$(printf '%s' "${PHONECODE_NAME:-root}" | sed 's/[\/&]/\\&/g')"
 sed -i "s/PHONECODE_NAME_PLACEHOLDER/$phonecode_name_escaped/g" "$HOME/.local/share/phonecode/helpers.sh"
+agent_command="ocode --auto"
+[ "${INSTALL_OA:-0}" = "1" ] && agent_command="oa"
+agent_command_escaped="$(printf '%s' "$agent_command" | sed 's/[\/&]/\\&/g')"
 
 cat > "$HOME/.local/bin/phonecode" <<'PHONECODE'
 #!/bin/sh
@@ -684,9 +687,11 @@ Commands:
 Quick start:
   start
   pc doctor
+  pc help
+  mkdir -p ~/projects/my-app
   cd ~/projects/my-app
   code .
-  ocode --auto
+  PHONECODE_AGENT_COMMAND_PLACEHOLDER
 USAGE
 }
 is_bad_agent_dir() {
@@ -701,8 +706,9 @@ cmd_opencode() {
 Refusing to start OpenCode from: $(pwd)
 
 Go into a specific project first:
+  mkdir -p ~/projects/my-app
   cd ~/projects/my-app
-  ocode --auto
+  PHONECODE_AGENT_COMMAND_PLACEHOLDER
 
 Normal OpenCode is still available:
   opencode $*
@@ -865,6 +871,7 @@ case "${1:-help}" in
     *) usage; exit 2 ;;
 esac
 PHONECODE
+sed -i "s/PHONECODE_AGENT_COMMAND_PLACEHOLDER/$agent_command_escaped/g" "$HOME/.local/bin/phonecode"
 chmod +x "$HOME/.local/bin/phonecode"
 cat > "$HOME/.local/bin/pc" <<'PC'
 #!/bin/sh
@@ -961,17 +968,20 @@ Ubuntu/proot setup was skipped, so PhoneCode helpers and tools were not installe
 Run again with Recommended, Minimal, or Custom with Ubuntu enabled when you want the full setup.
 DONE
     else
-        cat <<'DONE'
+        agent_command="ocode --auto"
+        [ "$INSTALL_OA" -eq 1 ] && agent_command="oa"
+        cat <<DONE
 
 PhoneCode setup is done.
 
 Next:
   start
-  source ~/.bashrc
   pc doctor
+  pc help
+  mkdir -p ~/projects/my-app
   cd ~/projects/my-app
   code .
-  ocode --auto
+  $agent_command
 DONE
     fi
 }

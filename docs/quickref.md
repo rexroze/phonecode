@@ -35,13 +35,14 @@
 | Normal OpenCode auto | `opencode --auto` |
 | Safe OpenCode | `ocode` |
 | Safe OpenCode auto | `ocode --auto` |
-| Optional shortcut | `oa` |
+| Short auto shortcut | `oa` |
 
 Recommended:
 
 ```sh
+mkdir -p ~/projects/my-app
 cd ~/projects/my-app
-ocode --auto
+oa
 ```
 
 Avoid:

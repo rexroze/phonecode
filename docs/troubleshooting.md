@@ -155,8 +155,9 @@ Do not run OpenCode from `/root`, `~`, or the whole `~/projects` folder.
 Recommended:
 
 ```sh
+mkdir -p ~/projects/my-app
 cd ~/projects/my-app
-ocode --auto
+oa
 ```
 
 Normal OpenCode still works:

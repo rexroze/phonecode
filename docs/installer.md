@@ -42,6 +42,7 @@ Installs or configures:
 - `phonecode` command
 - `pc` shortcut
 - `ocode` safe OpenCode wrapper
+- `oa` shortcut for `ocode --auto`
 - OpenCode
 - GitHub CLI
 - Vercel CLI
@@ -126,11 +127,12 @@ If something fails, check the log path printed near the start of the install.
 
 ```sh
 start
-source ~/.bashrc
 pc doctor
+pc help
+mkdir -p ~/projects/my-app
 cd ~/projects/my-app
 code .
-ocode --auto
+oa
 ```
 
 ## Uninstall
