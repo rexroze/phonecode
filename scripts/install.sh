@@ -12,7 +12,6 @@ LOG_FILE="${TMPDIR:-/tmp}/phonecode-install.log"
 CURRENT_STEP=""
 CURRENT_TOTAL=""
 CURRENT_LABEL=""
-SPINNER_TICK=0
 
 INSTALL_UBUNTU=1
 INSTALL_TMUX=1
@@ -132,42 +131,52 @@ while [ "$#" -gt 0 ]; do
     shift
 done
 
-progress_bar() {
+progress_percent() {
     current="$1"
     total="$2"
-    percent=$((current * 100 / total))
-    width=20
-    filled=$((percent * width / 100))
-    empty=$((width - filled))
-    bar=""
-    i=0
-    while [ "$i" -lt "$filled" ]; do bar="${bar}█"; i=$((i + 1)); done
-    i=0
-    while [ "$i" -lt "$empty" ]; do bar="${bar}░"; i=$((i + 1)); done
-    printf '[%s] %s%%' "$bar" "$percent"
+    printf '%s' "$((current * 100 / total))"
 }
 
-spinner_frame() {
-    case $((SPINNER_TICK % 4)) in
-        0) printf '|' ;;
-        1) printf '/' ;;
-        2) printf '-' ;;
-        *) printf '\\' ;;
+terminal_columns() {
+    cols="$(tput cols 2>/dev/null || printf '80')"
+    case "$cols" in
+        ''|*[!0-9]*) cols=80 ;;
     esac
+    [ "$cols" -gt 8 ] || cols=80
+    printf '%s' "$cols"
+}
+
+shorten_text() {
+    text="$1"
+    max="$2"
+    if [ "$max" -le 0 ]; then
+        printf ''
+        return 0
+    fi
+    if [ "${#text}" -le "$max" ]; then
+        printf '%s' "$text"
+    elif [ "$max" -le 3 ]; then
+        printf '%s' "$text" | cut -c 1-"$max"
+    else
+        printf '%s...' "$(printf '%s' "$text" | cut -c 1-$((max - 3)))"
+    fi
 }
 
 render_step() {
-    bar="$(progress_bar "$CURRENT_STEP" "$CURRENT_TOTAL")"
+    percent="$(progress_percent "$CURRENT_STEP" "$CURRENT_TOTAL")"
+    prefix="[$CURRENT_STEP/$CURRENT_TOTAL] "
+    suffix=" ${percent}%"
     if [ -t 1 ] && [ "$DRY_RUN" -eq 0 ]; then
-        if [ "$CURRENT_STEP" = "$CURRENT_TOTAL" ]; then
-            prefix=""
-        else
-            prefix="$(spinner_frame) "
-            SPINNER_TICK=$((SPINNER_TICK + 1))
+        cols="$(terminal_columns)"
+        max_label=$((cols - ${#prefix} - ${#suffix} - 1))
+        if [ "$max_label" -lt 8 ]; then
+            prefix="Step $CURRENT_STEP/$CURRENT_TOTAL "
+            max_label=$((cols - ${#prefix} - ${#suffix} - 1))
         fi
-        printf "\r\033[K%b%s[%s/%s]%b %s %b%s%b" "$BLUE" "$prefix" "$CURRENT_STEP" "$CURRENT_TOTAL" "$NC" "$CURRENT_LABEL" "$GREEN" "$bar" "$NC"
+        label="$(shorten_text "$CURRENT_LABEL" "$max_label")"
+        printf "\r\033[K%b%s%b%s%b%s%b" "$BLUE" "$prefix" "$NC" "$label" "$GREEN" "$suffix" "$NC"
     else
-        printf "%b[%s/%s]%b %s %b%s%b\n" "$BLUE" "$CURRENT_STEP" "$CURRENT_TOTAL" "$NC" "$CURRENT_LABEL" "$GREEN" "$bar" "$NC"
+        printf "%b%s%b%s%b%s%b\n" "$BLUE" "$prefix" "$NC" "$CURRENT_LABEL" "$GREEN" "$suffix" "$NC"
     fi
 }
 

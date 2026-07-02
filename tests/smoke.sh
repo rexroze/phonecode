@@ -23,4 +23,4 @@ grep -q "PhoneCode setup finished without Ubuntu changes" /tmp/phonecode-test-cu
 ! grep -q "proot-distro login ubuntu -- install selected tools" /tmp/phonecode-test-custom-no-ubuntu.log
 ! grep -q "Example projects" /tmp/phonecode-test-recommended.log
 ! grep -q "LAN helper" /tmp/phonecode-test-recommended.log
-grep -q "██░░░░░░░░░░░░░░░░░░" /tmp/phonecode-test-recommended.log
+grep -q "\[1/7\] Updating Termux packages 14%" /tmp/phonecode-test-recommended.log

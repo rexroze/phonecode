@@ -107,15 +107,16 @@ Some package-manager prompts can still appear on unusual systems. If that happen
 
 The installer uses step-based progress instead of fake exact package progress.
 During a normal interactive install, package-manager output is written to the log
-and the terminal keeps one changing status line visible with a small spinner.
+and the terminal keeps one compact status line visible. That line is redrawn in
+place so narrow phone terminals do not fill with repeated progress rows.
 
 Example:
 
 ```text
 PhoneCode is installing...
-| [1/7] Updating Termux packages [██░░░░░░░░░░░░░░░░░░] 14%
-/ [2/7] Installing Termux tools [█████░░░░░░░░░░░░░░░] 28%
-- [3/7] Installing Ubuntu if needed [████████░░░░░░░░░░░░] 42%
+[1/7] Updating Termux packages 14%
+[2/7] Installing Termux tools 28%
+[3/7] Installing Ubuntu if needed 42%
 ```
 
 The progress means "which setup phase are we in," not exact download progress.
