@@ -17,6 +17,7 @@
 | --- | --- |
 | Enter Ubuntu | `start` |
 | Exit Ubuntu | `exit` |
+| Help | `pc help` or `phonecode help` |
 | Diagnostics | `pc doctor` |
 | Open editor | `code .` or `pc code .` |
 | List editors | `code ls` or `pc code ls` |

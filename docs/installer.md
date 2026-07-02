@@ -17,7 +17,8 @@ less install.sh
 sh install.sh
 ```
 
-The installer shows the PhoneCode banner, asks for an install type, summarizes choices, then runs the selected steps.
+The installer shows the PhoneCode phone banner, asks for an install type, summarizes choices, then runs the selected steps.
+Interactive terminals get color when supported; logs and dumb terminals stay plain.
 
 ## Install Types
 
@@ -66,7 +67,7 @@ It skips code-server, F5 behavior, OpenCode, GitHub CLI, Vercel CLI, and Neon CL
 Custom setup asks about:
 
 ```text
-Ubuntu/proot-distro
+Ubuntu/proot-distro setup
 tmux config
 Node.js LTS
 code-server
@@ -75,10 +76,10 @@ OpenCode
 GitHub CLI
 Vercel CLI
 Neon CLI
-example projects
-LAN code-server helper
 oa shortcut for ocode --auto
 ```
+
+If you skip Ubuntu/proot-distro setup in Custom mode, PhoneCode skips Ubuntu-side helpers and tools too.
 
 This is the best choice if you do not want the F5 behavior or do not need Vercel/Neon yet.
 
@@ -97,23 +98,28 @@ apt-get upgrade -y \
 ```
 
 In Termux, it uses `pkg update -y`, `pkg upgrade -y`, and `pkg install -y` where supported.
+Package config-file prompts are handled non-interactively by keeping the current
+local config file, matching the default answer Termux shows for those prompts.
 
 Some package-manager prompts can still appear on unusual systems. If that happens, PhoneCode should show the current step and the log path so the prompt is not confusing.
 
 ## Progress UI
 
 The installer uses step-based progress instead of fake exact package progress.
+During a normal interactive install, package-manager output is written to the log
+and the terminal keeps one changing status line visible with a small spinner.
 
 Example:
 
 ```text
 PhoneCode is installing...
-[1/7] Updating Termux packages        #......... 14%
-[2/7] Installing Termux tools         ##........ 28%
-[3/7] Installing Ubuntu if needed     ####...... 42%
+| [1/7] Updating Termux packages [██░░░░░░░░░░░░░░░░░░] 14%
+/ [2/7] Installing Termux tools [█████░░░░░░░░░░░░░░░] 28%
+- [3/7] Installing Ubuntu if needed [████████░░░░░░░░░░░░] 42%
 ```
 
 The progress means "which setup phase are we in," not exact download progress.
+If something fails, check the log path printed near the start of the install.
 
 ## Commands After Install
 
@@ -147,6 +153,7 @@ PhoneCode .bashrc block
 ~/.local/bin/ocode
 ~/.local/bin/oa
 ~/.local/share/phonecode
+$PREFIX/bin/start if PhoneCode owns it
 /tmp/phonecode-*
 ```
 

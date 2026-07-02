@@ -54,9 +54,9 @@ Custom setup lets users opt in or out of:
 - GitHub CLI
 - Vercel CLI
 - Neon CLI
-- example projects
-- LAN code-server helper
 - `oa` shortcut
+
+Skipping Ubuntu/proot-distro also skips the Ubuntu-side helpers and tools.
 
 F5 behavior is intentionally optional.
 
@@ -104,4 +104,4 @@ Before modifying user files, PhoneCode creates timestamped backups such as:
 pc uninstall
 ```
 
-Uninstall removes only PhoneCode-owned files and the PhoneCode block in `.bashrc`. It does not remove projects.
+Uninstall removes only PhoneCode-owned files, the PhoneCode block in `.bashrc`, and the Termux `start` command if PhoneCode owns it. It does not remove projects.

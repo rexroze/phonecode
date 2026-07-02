@@ -1,17 +1,18 @@
 # PhoneCode
 
 ```text
-      __________________
-     /  ______________  \
-    |  |              |  |
-    |  |  phonecode   |  |
-    |  |  >_ build    |  |
-    |  |  >_ ship     |  |
-    |  |______________|  |
-     \______ ____ ______/
-            \____/
+        ______________________
+       /  __________________  \
+      |  |                  |  |
+      |  |   phonecode      |  |
+      |  |   >_ build       |  |
+      |  |   >_ ship        |  |
+      |  |__________________|  |
+       \______  ____  ______/
+              \/    \/
 
-      code from your phone
+          code from your phone
+          Termux -> Ubuntu -> code
 ```
 
 Build, edit, run, and deploy small web apps from an Android phone.
@@ -56,7 +57,6 @@ Readable command:
 
 ```sh
 phonecode doctor
-phonecode setup
 phonecode code .
 phonecode opencode
 phonecode uninstall
@@ -66,7 +66,6 @@ Short command:
 
 ```sh
 pc doctor
-pc setup
 pc code .
 pc opencode
 pc uninstall

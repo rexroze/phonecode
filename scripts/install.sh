@@ -9,6 +9,10 @@ DRY_RUN=0
 PROFILE=""
 NON_INTERACTIVE=0
 LOG_FILE="${TMPDIR:-/tmp}/phonecode-install.log"
+CURRENT_STEP=""
+CURRENT_TOTAL=""
+CURRENT_LABEL=""
+SPINNER_TICK=0
 
 INSTALL_UBUNTU=1
 INSTALL_TMUX=1
@@ -26,17 +30,32 @@ PHONECODE_NAME="root"
 GIT_NAME="PhoneCode User"
 GIT_EMAIL="user@phonecode.local"
 
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-BLUE='\033[0;34m'
-NC='\033[0m'
+if [ -t 1 ] && [ -z "${NO_COLOR:-}" ] && [ "${TERM:-}" != "dumb" ]; then
+    CYAN='\033[0;36m'
+    GREEN='\033[0;32m'
+    YELLOW='\033[1;33m'
+    RED='\033[0;31m'
+    BLUE='\033[0;34m'
+    DIM='\033[2m'
+    BOLD='\033[1m'
+    NC='\033[0m'
+else
+    CYAN=''
+    GREEN=''
+    YELLOW=''
+    RED=''
+    BLUE=''
+    DIM=''
+    BOLD=''
+    NC=''
+fi
 
 info() { printf "%b[INFO]%b %s\n" "$GREEN" "$NC" "$*"; }
 warn() { printf "%b[WARN]%b %s\n" "$YELLOW" "$NC" "$*"; }
 fail() { printf "%b[ERROR]%b %s\n" "$RED" "$NC" "$*"; exit 1; }
 
-brand() {
+brand_phone() {
+    printf "%b" "$CYAN"
     cat <<'BRAND'
       __________________
      /  ______________  \
@@ -48,8 +67,13 @@ brand() {
      \______ ____ ______/
             \____/
 
-      code from your phone
 BRAND
+    printf "%b" "$NC"
+    printf "     %bcode from your phone%b\n" "$GREEN" "$NC"
+}
+
+brand() {
+    brand_phone
 }
 
 usage() {
@@ -108,13 +132,86 @@ while [ "$#" -gt 0 ]; do
     shift
 done
 
+progress_bar() {
+    current="$1"
+    total="$2"
+    percent=$((current * 100 / total))
+    width=20
+    filled=$((percent * width / 100))
+    empty=$((width - filled))
+    bar=""
+    i=0
+    while [ "$i" -lt "$filled" ]; do bar="${bar}█"; i=$((i + 1)); done
+    i=0
+    while [ "$i" -lt "$empty" ]; do bar="${bar}░"; i=$((i + 1)); done
+    printf '[%s] %s%%' "$bar" "$percent"
+}
+
+spinner_frame() {
+    case $((SPINNER_TICK % 4)) in
+        0) printf '|' ;;
+        1) printf '/' ;;
+        2) printf '-' ;;
+        *) printf '\\' ;;
+    esac
+}
+
+render_step() {
+    bar="$(progress_bar "$CURRENT_STEP" "$CURRENT_TOTAL")"
+    if [ -t 1 ] && [ "$DRY_RUN" -eq 0 ]; then
+        if [ "$CURRENT_STEP" = "$CURRENT_TOTAL" ]; then
+            prefix=""
+        else
+            prefix="$(spinner_frame) "
+            SPINNER_TICK=$((SPINNER_TICK + 1))
+        fi
+        printf "\r\033[K%b%s[%s/%s]%b %s %b%s%b" "$BLUE" "$prefix" "$CURRENT_STEP" "$CURRENT_TOTAL" "$NC" "$CURRENT_LABEL" "$GREEN" "$bar" "$NC"
+    else
+        printf "%b[%s/%s]%b %s %b%s%b\n" "$BLUE" "$CURRENT_STEP" "$CURRENT_TOTAL" "$NC" "$CURRENT_LABEL" "$GREEN" "$bar" "$NC"
+    fi
+}
+
+finish_progress_line() {
+    if [ -t 1 ] && [ "$DRY_RUN" -eq 0 ]; then
+        printf '\n'
+    fi
+}
+
+wait_for_progress() {
+    pid="$1"
+    status_file="$2"
+    while [ ! -f "$status_file" ]; do
+        render_step
+        sleep 1
+    done
+    status="$(sed -n '1p' "$status_file" 2>/dev/null || printf '1')"
+    rm -f "$status_file"
+    wait "$pid" 2>/dev/null || true
+    render_step
+    if [ "$status" -ne 0 ]; then
+        finish_progress_line
+        fail "Command failed during: $CURRENT_LABEL (see $LOG_FILE)"
+    fi
+}
+
 run() {
     printf '%s\n' "+ $*" >> "$LOG_FILE"
     if [ "$DRY_RUN" -eq 1 ]; then
         printf "  dry-run: %s\n" "$*"
-    else
-        "$@"
+        return 0
     fi
+    status_file="${TMPDIR:-/tmp}/phonecode-status.$$.$CURRENT_STEP"
+    rm -f "$status_file"
+    (
+        set +e
+        "$@" >> "$LOG_FILE" 2>&1
+        printf '%s\n' "$?" > "$status_file"
+    ) &
+    wait_for_progress "$!" "$status_file"
+}
+
+pkg_run() {
+    run env DEBIAN_FRONTEND=noninteractive UCF_FORCE_CONFFOLD=1 pkg "$@" -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"
 }
 
 ask_yes_no() {
@@ -138,18 +235,10 @@ ask_yes_no() {
 }
 
 step() {
-    current="$1"
-    total="$2"
-    label="$3"
-    percent=$((current * 100 / total))
-    filled=$((percent / 10))
-    empty=$((10 - filled))
-    bar=""
-    i=0
-    while [ "$i" -lt "$filled" ]; do bar="${bar}#"; i=$((i + 1)); done
-    i=0
-    while [ "$i" -lt "$empty" ]; do bar="${bar}."; i=$((i + 1)); done
-    printf "\n%b[%s/%s]%b %s %b%s%b %s%%\n" "$BLUE" "$current" "$total" "$NC" "$label" "$GREEN" "$bar" "$NC" "$percent"
+    CURRENT_STEP="$1"
+    CURRENT_TOTAL="$2"
+    CURRENT_LABEL="$3"
+    render_step
 }
 
 choose_profile() {
@@ -243,7 +332,22 @@ custom_questions() {
 PhoneCode Custom Setup
 Answer once now. After this, PhoneCode installs without random prompts where possible.
 CUSTOM
-    ask_yes_no "Install Ubuntu through proot-distro?" y && INSTALL_UBUNTU=1 || INSTALL_UBUNTU=0
+    if ask_yes_no "Install and configure Ubuntu through proot-distro?" y; then
+        INSTALL_UBUNTU=1
+    else
+        INSTALL_UBUNTU=0
+        INSTALL_TMUX=0
+        INSTALL_NODE=0
+        INSTALL_CODE_SERVER=0
+        INSTALL_F5=0
+        INSTALL_OPENCODE=0
+        INSTALL_GH=0
+        INSTALL_VERCEL=0
+        INSTALL_NEON=0
+        INSTALL_OA=0
+        warn "Skipping Ubuntu also skips Ubuntu-side PhoneCode helpers and tools."
+        return 0
+    fi
     ask_yes_no "Configure tmux?" y && INSTALL_TMUX=1 || INSTALL_TMUX=0
     ask_yes_no "Install Node.js LTS through nvm?" y && INSTALL_NODE=1 || INSTALL_NODE=0
     ask_yes_no "Install code-server?" y && INSTALL_CODE_SERVER=1 || INSTALL_CODE_SERVER=0
@@ -274,6 +378,7 @@ ask_text() {
 
 collect_identity() {
     [ "$RUN_UNINSTALL" -eq 1 ] && return 0
+    [ "$RUN_REPAIR" -eq 0 ] && [ "$INSTALL_UBUNTU" -eq 0 ] && return 0
     PHONECODE_NAME="$(sanitize_label "$(ask_text "PhoneCode terminal name" "$PHONECODE_NAME")")"
     GIT_NAME="$(ask_text "Git name" "$GIT_NAME")"
     GIT_EMAIL="$(ask_text "Git email" "$GIT_EMAIL")"
@@ -327,15 +432,32 @@ create_start_command() {
 exec proot-distro login ubuntu
 OLDSTARTEOF
         then
-            info "Updating existing PhoneCode start command."
+            printf '%s\n' "Updating existing PhoneCode start command." >> "$LOG_FILE"
+        elif grep -q 'phonecode' "$START_PATH" 2>/dev/null && grep -q 'proot-distro login ubuntu' "$START_PATH" 2>/dev/null; then
+            printf '%s\n' "Updating existing PhoneCode start command." >> "$LOG_FILE"
         else
+            finish_progress_line
             warn "'start' already exists at $START_PATH; leaving it unchanged."
             return 0
         fi
     fi
     cat > "$START_PATH" <<'STARTEOF'
 #!/bin/sh
-cat <<'BRAND'
+# PhoneCode-owned Termux launcher.
+if [ -t 1 ] && [ -z "${NO_COLOR:-}" ] && [ "${TERM:-}" != "dumb" ]; then
+    CYAN='\033[0;36m'
+    GREEN='\033[0;32m'
+    DIM='\033[2m'
+    NC='\033[0m'
+else
+    CYAN=''
+    GREEN=''
+    DIM=''
+    NC=''
+fi
+brand_phone() {
+    printf "%b" "$CYAN"
+    cat <<'BRAND'
       __________________
      /  ______________  \
     |  |              |  |
@@ -346,24 +468,47 @@ cat <<'BRAND'
      \______ ____ ______/
             \____/
 
-      code from your phone
 BRAND
+    printf "%b" "$NC"
+    printf "          %bcode from your phone%b\n" "$GREEN" "$NC"
+}
+brand_phone
 exec proot-distro login ubuntu
 STARTEOF
     chmod +x "$START_PATH"
 }
 
+remove_start_command() {
+    START_PATH="${PREFIX:-/data/data/com.termux/files/usr}/bin/start"
+    if [ "$DRY_RUN" -eq 1 ]; then
+        printf "  dry-run: remove %s only if PhoneCode owns it\n" "$START_PATH"
+        return 0
+    fi
+    [ -f "$START_PATH" ] || return 0
+    if grep -q 'PhoneCode-owned Termux launcher' "$START_PATH" 2>/dev/null; then
+        rm -f "$START_PATH"
+    elif cmp -s "$START_PATH" - <<'OLDSTARTEOF'
+#!/bin/sh
+exec proot-distro login ubuntu
+OLDSTARTEOF
+    then
+        rm -f "$START_PATH"
+    else
+        warn "'start' exists at $START_PATH but is not PhoneCode-owned; leaving it unchanged."
+    fi
+}
+
 install_termux_layer() {
     step 1 7 "Updating Termux packages"
-    run pkg update -y
-    run pkg upgrade -y
+    pkg_run update -y
+    pkg_run upgrade -y
     step 2 7 "Installing Termux tools"
-    run pkg install -y proot-distro git curl openssh nano tmux
+    pkg_run install -y proot-distro git curl openssh nano tmux
     step 3 7 "Installing Ubuntu if needed"
     if [ "$DRY_RUN" -eq 1 ]; then
         printf "  dry-run: proot-distro install ubuntu if missing\n"
     elif proot-distro list 2>/dev/null | grep -q '^ *ubuntu '; then
-        info "Ubuntu is already installed."
+        printf '%s\n' "Ubuntu is already installed." >> "$LOG_FILE"
     else
         run proot-distro install ubuntu
     fi
@@ -376,6 +521,10 @@ run_ubuntu_install() {
         printf "  dry-run: proot-distro login ubuntu -- install selected tools\n"
         return 0
     fi
+    status_file="${TMPDIR:-/tmp}/phonecode-status.$$.$CURRENT_STEP"
+    rm -f "$status_file"
+    (
+    set +e
     proot-distro login ubuntu -- env \
         PHONECODE_VERSION="$PHONECODE_VERSION" \
         PROFILE="$PROFILE" \
@@ -445,12 +594,14 @@ if [ "${RUN_REPAIR:-0}" != "1" ] && [ "${INSTALL_NODE:-1}" = "1" ]; then
         curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
     fi
     export NVM_DIR="$HOME/.nvm"
+    set +u
     # shellcheck disable=SC1091
     . "$NVM_DIR/nvm.sh"
     if ! command -v node >/dev/null 2>&1; then
         nvm install --lts
     fi
     nvm use --lts
+    set -u
     corepack enable || true
     npm_tools=""
     [ "${INSTALL_OPENCODE:-0}" = "1" ] && npm_tools="$npm_tools opencode-ai"
@@ -499,6 +650,13 @@ usage() {
     cat <<'USAGE'
 Usage: phonecode COMMAND [args]
 
+Aliases:
+  pc                 Short alias for phonecode
+  code               Shell helper for phonecode code
+  open               Shell helper for phonecode open
+  ocode              Safe OpenCode wrapper
+  start              Termux command that enters Ubuntu
+
 Commands:
   doctor             Check the PhoneCode environment
   verify             Alias for doctor
@@ -513,6 +671,13 @@ Commands:
   stop-all           Stop PhoneCode sessions
   uninstall          Remove PhoneCode-owned files
   help               Show this help
+
+Quick start:
+  start
+  pc doctor
+  cd ~/projects/my-app
+  code .
+  ocode --auto
 USAGE
 }
 is_bad_agent_dir() {
@@ -738,16 +903,21 @@ CONF
 [ "${INSTALL_F5:-0}" = "1" ] && "$HOME/.local/bin/phonecode" install-f5 || true
 "$HOME/.local/bin/phonecode" doctor || true
 UBUNTU_SCRIPT
+    printf '%s\n' "$?" > "$status_file"
+    ) >> "$LOG_FILE" 2>&1 &
+    wait_for_progress "$!" "$status_file"
 }
 
 run_uninstall() {
-    step 1 2 "Uninstalling PhoneCode helpers"
+    step 1 3 "Uninstalling PhoneCode helpers"
     if [ "$DRY_RUN" -eq 1 ]; then
         printf "  dry-run: proot-distro login ubuntu -- phonecode uninstall\n"
     else
         proot-distro login ubuntu -- sh -lc 'command -v phonecode >/dev/null 2>&1 && phonecode uninstall || true'
     fi
-    step 2 2 "Done"
+    step 2 3 "Removing PhoneCode start command"
+    remove_start_command
+    step 3 3 "Done"
 }
 
 main() {
@@ -760,11 +930,29 @@ main() {
     printf "\nPhoneCode is installing...\nLog: %s\n" "$LOG_FILE"
     termux_guard
     if [ "$RUN_UNINSTALL" -eq 1 ]; then run_uninstall; exit 0; fi
-    if [ "$RUN_REPAIR" -eq 0 ] && [ "$INSTALL_UBUNTU" -eq 1 ]; then install_termux_layer; fi
-    run_ubuntu_install
+    if [ "$RUN_REPAIR" -eq 0 ] && [ "$INSTALL_UBUNTU" -eq 1 ]; then
+        install_termux_layer
+        run_ubuntu_install
+    elif [ "$RUN_REPAIR" -eq 1 ]; then
+        run_ubuntu_install
+    else
+        step 5 7 "Skipping Ubuntu setup"
+        warn "Ubuntu setup was skipped by profile choice."
+    fi
     step 6 7 "Saving install choices"
     step 7 7 "Finished"
-    cat <<'DONE'
+    finish_progress_line
+    brand
+    if [ "$INSTALL_UBUNTU" -eq 0 ] && [ "$RUN_REPAIR" -eq 0 ]; then
+        cat <<'DONE'
+
+PhoneCode setup finished without Ubuntu changes.
+
+Ubuntu/proot setup was skipped, so PhoneCode helpers and tools were not installed inside Ubuntu.
+Run again with Recommended, Minimal, or Custom with Ubuntu enabled when you want the full setup.
+DONE
+    else
+        cat <<'DONE'
 
 PhoneCode setup is done.
 
@@ -776,6 +964,7 @@ Next:
   code .
   ocode --auto
 DONE
+    fi
 }
 
 main "$@"
