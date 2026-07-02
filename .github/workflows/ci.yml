@@ -1,0 +1,19 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  shell:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+      - name: ShellCheck scripts
+        run: shellcheck scripts/*.sh tests/*.sh
+      - name: Dry run installer
+        run: sh scripts/install.sh --dry-run --profile minimal --yes
+      - name: Run smoke tests
+        run: sh tests/smoke.sh
